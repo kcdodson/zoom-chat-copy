@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zoom Chat Copy - A Heart For Healing</title>
+<style>
+  body { font-family: Georgia, serif; max-width: 760px; margin: 0 auto; padding: 20px; color: #222; background: #fdfaf5; }
+  h1 { font-size: 1.6em; margin-bottom: 0.2em; }
+  p.intro { color: #555; }
+  section { background: #fff; border: 1px solid #e5ddd0; border-radius: 12px; padding: 16px; margin: 16px 0; }
+  label { display: block; font-weight: bold; margin-top: 12px; }
+  input, textarea { width: 100%; box-sizing: border-box; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 8px; font-size: 1em; font-family: inherit; }
+  textarea { min-height: 70px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  button { padding: 10px 14px; border: 0; border-radius: 8px; background: #6b4f9e; color: #fff; font-size: 1em; cursor: pointer; }
+  button.secondary { background: #eee; color: #222; }
+  button.danger { background: #fff; color: #8a2222; border: 1px solid #e0aaaa; }
+  .output { white-space: pre-wrap; background: #f7f3ec; border: 1px solid #e5ddd0; border-radius: 8px; padding: 12px; margin-top: 8px; }
+  .verse { border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; }
+  .verse:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+  .small { color: #666; font-size: 0.9em; }
+  .copied { color: #2e7d32; font-weight: bold; margin-left: 8px; }
+  a { color: #6b4f9e; }
+</style>
+</head>
+<body>
+<h1>Zoom Chat Copy</h1>
+<p class="intro">Fill in tonight's details, then copy each block into Zoom chat, one at a time. Nothing you type here is sent to a server. Saved verses are stored in this browser only.</p>
+
+<section>
+  <h2>Style</h2>
+  <label><input type="radio" name="style" value="fun" checked style="width:auto"> Fun (with emojis)</label>
+  <label><input type="radio" name="style" value="plain" style="width:auto"> Plain (no emojis)</label>
+</section>
+
+<section>
+  <h2>Welcome</h2>
+  <label>Session name <input id="sessionName" value="A Heart For Healing"></label>
+  <label>Host <input id="hostName" value="Rev. AdaRa Walton, N.D., Ph.D."></label>
+  <label>Welcome message <textarea id="welcomeText">We are so glad you are here tonight! Please settle in, take a breath, and join us with an open heart.</textarea></label>
+</section>
+
+<section>
+  <h2>Tonight's music</h2>
+  <label>Song title <input id="songTitle" value="Jesus Is All"></label>
+  <label>Artist <input id="songArtist" value="Sweet Honey In The Rock"></label>
+  <label>YouTube link <input id="songLink" value="https://www.youtube.com/watch?v=LhKl1XrGWU0"></label>
+</section>
+
+<section>
+  <h2>Scripture</h2>
+  <p class="small">Translation: George Lamsa Translation. Use the lookup link to check the exact Lamsa wording on StudyLight, then paste it here.</p>
+  <div id="verses"></div>
+  <div class="row">
+    <button type="button" id="addVerse">Add a verse</button>
+  </div>
+</section>
+
+<section>
+  <h2>Ready to paste</h2>
+  <h3>1. Welcome</h3>
+  <div class="output" id="outWelcome"></div>
+  <div class="row"><button type="button" data-copy="outWelcome">Copy welcome</button><span class="copied" id="copied-outWelcome"></span></div>
+  <h3>2. Tonight's music</h3>
+  <div class="output" id="outMusic"></div>
+  <div class="row"><button type="button" data-copy="outMusic">Copy music</button><span class="copied" id="copied-outMusic"></span></div>
+  <h3>3. Scripture</h3>
+  <div class="output" id="outScripture"></div>
+  <div class="row"><button type="button" data-copy="outScripture">Copy scripture</button><span class="copied" id="copied-outScripture"></span></div>
+  <div class="row">
+    <button type="button" class="secondary" id="startFresh">Start fresh for the next session</button>
+  </div>
+  <p class="small">Start fresh clears tonight's song and verses, but keeps your saved verse library below.</p>
+</section>
+
+<section>
+  <h2>Saved verse library</h2>
+  <p class="small">Verses you save here are kept in this browser, so a reference you have used before can be filled in with one tap.</p>
+  <div id="library"></div>
+</section>
+
+<script>
+const LIB_KEY = "zoomChatCopyLibrary";
+const initialVerses = [
+  { reference: "Colossians 4:2", text: "Continue in prayer, and watch in the same with thanksgiving." },
+  { reference: "Colossians 3:15", text: "And let the peace of Christ govern your hearts; for that end, you are called in one body; and be thankful to Christ." }
+];
+
+function loadLibrary() {
+  try {
+    const raw = localStorage.getItem(LIB_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  localStorage.setItem(LIB_KEY, JSON.stringify(initialVerses));
+  return initialVerses.slice();
+}
+let library = loadLibrary();
+function saveLibrary() { localStorage.setItem(LIB_KEY, JSON.stringify(library)); }
+
+function bookSlugAndChapter(ref) {
+  const m = ref.trim().match(/^(.+?)\s+(\d+):/);
+  if (!m) return null;
+  let book = m[1].toLowerCase().trim();
+  book = book.replace(/^psalms?$/, "psalms").replace(/^song of songs$/, "song-of-solomon");
+  book = book.replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, "-");
+  return { book, chapter: m[2] };
+}
+function lookupUrl(ref) {
+  const parsed = bookSlugAndChapter(ref);
+  if (!parsed) return "https://www.studylight.org/bible/eng/glt/";
+  return "https://www.studylight.org/bible/eng/glt/" + parsed.book + "/" + parsed.chapter + ".html";
+}
+
+const versesEl = document.getElementById("verses");
+function verseRow(verse) {
+  const div = document.createElement("div");
+  div.className = "verse";
+  div.innerHTML = '<label>Reference <input class="ref" value=""></label>' +
+    '<label>Verse text <textarea class="text"></textarea></label>' +
+    '<div class="row">' +
+    '<a class="lookup" target="_blank" rel="noopener">Look up this chapter in Lamsa (StudyLight)</a>' +
+    '<button type="button" class="secondary save">Save to library</button>' +
+    '<button type="button" class="danger remove">Remove</button>' +
+    '<span class="copied saved-msg"></span></div>';
+  div.querySelector(".ref").value = verse.reference || "";
+  div.querySelector(".text").value = verse.text || "";
+  const updateLookup = () => { div.querySelector(".lookup").href = lookupUrl(div.querySelector(".ref").value); };
+  div.querySelector(".ref").addEventListener("input", () => { updateLookup(); render(); });
+  div.querySelector(".text").addEventListener("input", render);
+  div.querySelector(".save").addEventListener("click", () => {
+    const reference = div.querySelector(".ref").value.trim();
+    const text = div.querySelector(".text").value.trim();
+    if (!reference || !text) return;
+    const existing = library.find(v => v.reference.toLowerCase() === reference.toLowerCase());
+    if (existing) existing.text = text; else library.push({ reference, text });
+    saveLibrary(); renderLibrary();
+    div.querySelector(".saved-msg").textContent = "Saved in library";
+  });
+  div.querySelector(".remove").addEventListener("click", () => { div.remove(); render(); });
+  updateLookup();
+  return div;
+}
+function addVerse(verse) { versesEl.appendChild(verseRow(verse || { reference: "", text: "" })); render(); }
+document.getElementById("addVerse").addEventListener("click", () => addVerse({ reference: "", text: "" }));
+
+function getVerses() {
+  return Array.from(versesEl.querySelectorAll(".verse")).map(d => ({
+    reference: d.querySelector(".ref").value.trim(),
+    text: d.querySelector(".text").value.trim()
+  })).filter(v => v.reference || v.text);
+}
+function style() { return document.querySelector('input[name="style"]:checked').value; }
+
+function render() {
+  const fun = style() === "fun";
+  const session = document.getElementById("sessionName").value.trim();
+  const host = document.getElementById("hostName").value.trim();
+  const welcome = document.getElementById("welcomeText").value.trim();
+  const title = document.getElementById("songTitle").value.trim();
+  const artist = document.getElementById("songArtist").value.trim();
+  const link = document.getElementById("songLink").value.trim();
+  const verses = getVerses();
+
+  let welcomeOut = "";
+  if (fun) welcomeOut += "Welcome to " + session + " with " + host + " \u2728\n";
+  else welcomeOut += "Welcome to " + session + " with " + host + "\n";
+  welcomeOut += welcome;
+  if (fun) welcomeOut += " \uD83D\uDC9B\uD83D\uDE4F";
+  document.getElementById("outWelcome").textContent = welcomeOut;
+
+  let musicOut = "";
+  if (fun) musicOut += "Tonight's music:\n\uD83C\uDFB6 " + title + " by " + artist + "\n\uD83D\uDD17 " + link;
+  else musicOut += "Tonight's music:\n" + title + " by " + artist + "\n" + link;
+  document.getElementById("outMusic").textContent = musicOut;
+
+  let scriptOut = "";
+  if (fun) scriptOut += "Tonight's scripture, from the George Lamsa Translation: \uD83D\uDE4F\n\n";
+  else scriptOut += "Tonight's scripture, from the George Lamsa Translation:\n\n";
+  scriptOut += verses.map(v => v.reference + "\n\"" + v.text + "\"").join("\n\n");
+  document.getElementById("outScripture").textContent = scriptOut;
+}
+
+function renderLibrary() {
+  const el = document.getElementById("library");
+  if (!library.length) { el.innerHTML = '<p class="small">No saved verses yet.</p>'; return; }
+  el.innerHTML = "";
+  library.forEach((v, i) => {
+    const div = document.createElement("div");
+    div.className = "verse";
+    div.innerHTML = "<strong></strong><div class='small'></div><div class='row'></div>";
+    div.querySelector("strong").textContent = v.reference;
+    div.querySelector(".small").textContent = v.text;
+    const fill = document.createElement("button");
+    fill.type = "button"; fill.className = "secondary"; fill.textContent = "Fill into scripture";
+    fill.addEventListener("click", () => { addVerse(v); });
+    const del = document.createElement("button");
+    del.type = "button"; del.className = "danger"; del.textContent = "Delete";
+    del.addEventListener("click", () => { library.splice(i, 1); saveLibrary(); renderLibrary(); });
+    div.querySelector(".row").append(fill, del);
+    el.appendChild(div);
+  });
+}
+
+document.querySelectorAll('input[name="style"]').forEach(r => r.addEventListener("change", render));
+["sessionName", "hostName", "welcomeText", "songTitle", "songArtist", "songLink"].forEach(id => {
+  document.getElementById(id).addEventListener("input", render);
+});
+document.querySelectorAll("[data-copy]").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const id = btn.getAttribute("data-copy");
+    const text = document.getElementById(id).textContent;
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) {
+      const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+    }
+    document.getElementById("copied-" + id).textContent = "Copied - paste it in Zoom";
+    setTimeout(() => { document.getElementById("copied-" + id).textContent = ""; }, 3000);
+  });
+});
+document.getElementById("startFresh").addEventListener("click", () => {
+  document.getElementById("songTitle").value = "";
+  document.getElementById("songArtist").value = "";
+  document.getElementById("songLink").value = "";
+  versesEl.innerHTML = "";
+  addVerse({ reference: "", text: "" });
+  render();
+});
+
+initialVerses.forEach(v => addVerse(v));
+renderLibrary();
+render();
+</script>
+</body>
+</html>
