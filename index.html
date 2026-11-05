@@ -5,28 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Zoom Chat Copy - A Heart For Healing</title>
 <style>
-  body { font-family: Georgia, serif; max-width: 760px; margin: 0 auto; padding: 20px; color: #222; background: #fdfaf5; }
-  h1 { font-size: 1.6em; margin-bottom: 0.2em; }
-  p.intro { color: #555; }
-  section { background: #fff; border: 1px solid #e5ddd0; border-radius: 12px; padding: 16px; margin: 16px 0; }
+  :root { color-scheme: light; --bg: #fdfaf5; --card: #fff; --text: #222; --muted: #555; --border: #e5ddd0; --input-border: #ccc; --output-bg: #f7f3ec; --secondary-bg: #eee; --secondary-text: #222; --danger-bg: #fff; --danger-text: #8a2222; --danger-border: #e0aaaa; --link: #6b4f9e; --copied: #2e7d32; }
+  @media (prefers-color-scheme: dark) {
+    :root { color-scheme: dark; --bg: #17141f; --card: #221e2e; --text: #f0ecf7; --muted: #b8b0c8; --border: #3d364d; --input-border: #4d4560; --output-bg: #2a2438; --secondary-bg: #3a3348; --secondary-text: #f0ecf7; --danger-bg: #2e1e24; --danger-text: #ffb3b3; --danger-border: #6b3a3a; --link: #c4b5fd; --copied: #8fd19a; }
+  }
+  html[data-theme="light"] { color-scheme: light; --bg: #fdfaf5; --card: #fff; --text: #222; --muted: #555; --border: #e5ddd0; --input-border: #ccc; --output-bg: #f7f3ec; --secondary-bg: #eee; --secondary-text: #222; --danger-bg: #fff; --danger-text: #8a2222; --danger-border: #e0aaaa; --link: #6b4f9e; --copied: #2e7d32; }
+  html[data-theme="dark"] { color-scheme: dark; --bg: #17141f; --card: #221e2e; --text: #f0ecf7; --muted: #b8b0c8; --border: #3d364d; --input-border: #4d4560; --output-bg: #2a2438; --secondary-bg: #3a3348; --secondary-text: #f0ecf7; --danger-bg: #2e1e24; --danger-text: #ffb3b3; --danger-border: #6b3a3a; --link: #c4b5fd; --copied: #8fd19a; }
+  * { box-sizing: border-box; }
+  body { font-family: Georgia, serif; max-width: 760px; margin: 0 auto; padding: clamp(12px, 4vw, 20px); color: var(--text); background: var(--bg); }
+  h1 { font-size: clamp(1.4rem, 6vw, 1.8rem); margin-bottom: 0.2em; }
+  h2 { font-size: clamp(1.15rem, 4.5vw, 1.4rem); }
+  p.intro { color: var(--muted); }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: clamp(12px, 4vw, 16px); margin: 16px 0; }
   label { display: block; font-weight: bold; margin-top: 12px; }
-  input, textarea { width: 100%; box-sizing: border-box; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 8px; font-size: 1em; font-family: inherit; }
+  input, textarea { width: 100%; box-sizing: border-box; padding: 10px; margin-top: 4px; border: 1px solid var(--input-border); border-radius: 8px; font-size: 16px; font-family: inherit; background: var(--card); color: var(--text); }
+  input[type="radio"] { width: auto; }
   textarea { min-height: 70px; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  button { padding: 10px 14px; border: 0; border-radius: 8px; background: #6b4f9e; color: #fff; font-size: 1em; cursor: pointer; }
-  button.secondary { background: #eee; color: #222; }
-  button.danger { background: #fff; color: #8a2222; border: 1px solid #e0aaaa; }
-  .output { white-space: pre-wrap; background: #f7f3ec; border: 1px solid #e5ddd0; border-radius: 8px; padding: 12px; margin-top: 8px; }
-  .verse { border-top: 1px solid #eee; padding-top: 12px; margin-top: 12px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+  button { padding: 12px 16px; border: 0; border-radius: 8px; background: #6b4f9e; color: #fff; font-size: 1em; cursor: pointer; min-height: 44px; }
+  button.secondary { background: var(--secondary-bg); color: var(--secondary-text); }
+  button.danger { background: var(--danger-bg); color: var(--danger-text); border: 1px solid var(--danger-border); }
+  .output { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--output-bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-top: 8px; }
+  .verse { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; }
   .verse:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
-  .small { color: #666; font-size: 0.9em; }
-  .copied { color: #2e7d32; font-weight: bold; margin-left: 8px; }
-  a { color: #6b4f9e; }
+  .small { color: var(--muted); font-size: 0.9em; }
+  .copied { color: var(--copied); font-weight: bold; margin-left: 8px; }
+  a { color: var(--link); }
+  @media (max-width: 560px) {
+    .row { flex-direction: column; align-items: stretch; }
+    .row button, .row a { width: 100%; text-align: center; }
+    .copied { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
 <h1>Zoom Chat Copy</h1>
 <p class="intro">Fill in tonight's details, then copy each block into Zoom chat, one at a time. Nothing you type here is sent to a server. Saved verses are stored in this browser only.</p>
+
+<section>
+  <h2>Theme</h2>
+  <p class="small">System follows your computer or phone setting and updates if that setting changes.</p>
+  <label><input type="radio" name="theme" value="system" checked> System (follow my device)</label>
+  <label><input type="radio" name="theme" value="light"> Light</label>
+  <label><input type="radio" name="theme" value="dark"> Dark</label>
+</section>
 
 <section>
   <h2>Style</h2>
@@ -81,6 +103,24 @@
 </section>
 
 <script>
+const THEME_KEY = "zoomChatCopyTheme";
+function applyTheme(theme) {
+  if (theme === "system") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+try {
+  const savedTheme = localStorage.getItem(THEME_KEY) || "system";
+  const themeRadio = document.querySelector('input[name="theme"][value="' + savedTheme + '"]');
+  if (themeRadio) themeRadio.checked = true;
+  applyTheme(savedTheme);
+} catch (e) {}
+document.querySelectorAll('input[name="theme"]').forEach(r => r.addEventListener("change", () => applyTheme(r.value)));
+if (window.matchMedia) window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  const current = document.querySelector('input[name="theme"]:checked');
+  if (current && current.value === "system") document.documentElement.removeAttribute("data-theme");
+});
+
 const LIB_KEY = "zoomChatCopyLibrary";
 const initialVerses = [
   { reference: "Colossians 4:2", text: "Continue in prayer, and watch in the same with thanksgiving." },
